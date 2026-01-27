@@ -121,6 +121,11 @@ run_phase6() {
     run_test_suite "Phase 6" "$TESTS_DIR/integration/test_phase6_sol.sh"
 }
 
+# Run Phase 7 tests
+run_phase7() {
+    run_test_suite "Phase 7" "$TESTS_DIR/integration/test_phase7_integration.sh"
+}
+
 # Run all integration tests
 run_integration() {
     run_phase1
@@ -129,6 +134,7 @@ run_integration() {
     run_phase4
     run_phase5
     run_phase6
+    run_phase7
 }
 
 # Run unit tests (placeholder)
@@ -270,12 +276,16 @@ main() {
             start_test_container || exit 1
             run_phase6
             ;;
+        phase7)
+            # Phase 7 tests use the final Dockerfile
+            run_phase7
+            ;;
         quick)
             build_image || exit 1
             run_quick
             ;;
         *)
-            echo "Usage: $0 {all|integration|unit|phase1|phase2|phase3|phase4|phase5|phase6|quick}"
+            echo "Usage: $0 {all|integration|unit|phase1|phase2|phase3|phase4|phase5|phase6|phase7|quick}"
             exit 1
             ;;
     esac

@@ -1,0 +1,91 @@
+# Docker Compose configuration for QEMU-BMC
+# Use for development and testing
+#
+# Usage:
+#   docker-compose up -d        # Start container
+#   docker-compose logs -f      # View logs
+#   docker-compose down         # Stop and remove
+
+version: "3.8"
+
+services:
+  qemu-bmc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: qemu-bmc:latest
+    container_name: qemu-bmc
+    hostname: qemu-bmc
+    privileged: true
+
+    # Required devices
+    devices:
+      - /dev/kvm:/dev/kvm
+      - /dev/net/tun:/dev/net/tun
+
+    # Required capabilities for networking
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+
+    # Port mappings
+    ports:
+      - "5900:5900"      # VNC console
+      - "623:623/udp"    # IPMI RMCP
+
+    # VM configuration
+    environment:
+      - VM_MEMORY=2048
+      - VM_CPUS=2
+      - VM_DISK=/vm/disk.qcow2
+      - ENABLE_KVM=true
+      - VNC_PORT=5900
+      - DEBUG=false
+      - IPMI_USER=admin
+      - IPMI_PASS=password
+      # Uncomment to pass network interfaces to VM
+      # - VM_NETWORKS=eth2,eth3
+
+    # Volumes
+    volumes:
+      - ./vm:/vm:rw           # VM disk images
+      - ./iso:/iso:ro         # ISO images (read-only)
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "supervisorctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+# Example multi-node configuration
+# Uncomment to deploy multiple QEMU-BMC instances
+#
+#   node1:
+#     <<: *qemu-bmc-defaults
+#     container_name: node1
+#     hostname: node1
+#     ports:
+#       - "5901:5900"
+#       - "6231:623/udp"
+#     volumes:
+#       - ./vm/node1:/vm:rw
+#
+#   node2:
+#     <<: *qemu-bmc-defaults
+#     container_name: node2
+#     hostname: node2
+#     ports:
+#       - "5902:5900"
+#       - "6232:623/udp"
+#     volumes:
+#       - ./vm/node2:/vm:rw
+
+networks:
+  default:
+    name: qemu-bmc-network
+    driver: bridge

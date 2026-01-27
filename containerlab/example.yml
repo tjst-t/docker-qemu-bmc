@@ -1,0 +1,116 @@
+# Containerlab Topology Example for QEMU-BMC
+#
+# This example creates a simple topology with two QEMU-BMC nodes
+# connected via a management network.
+#
+# Usage:
+#   cd containerlab
+#   containerlab deploy -t example.yml
+#   containerlab destroy -t example.yml
+#
+# Access:
+#   - VNC: vncviewer localhost:5901 (node1), localhost:5902 (node2)
+#   - IPMI: ipmitool -I lanplus -H <node-ip> -U admin -P password mc info
+
+name: qemu-bmc-lab
+
+# Topology definition
+topology:
+  # Default settings for all nodes
+  defaults:
+    kind: linux
+
+  # Node definitions
+  nodes:
+    # QEMU-BMC Node 1
+    node1:
+      kind: linux
+      image: qemu-bmc:latest
+      runtime: docker
+      binds:
+        - ../vm/node1:/vm:rw
+        - ../iso:/iso:ro
+      env:
+        VM_MEMORY: "2048"
+        VM_CPUS: "2"
+        ENABLE_KVM: "true"
+        DEBUG: "false"
+        IPMI_USER: "admin"
+        IPMI_PASS: "password"
+      ports:
+        - 5901:5900      # VNC
+        - 6231:623/udp   # IPMI
+      exec:
+        # Commands to run after container starts
+        - sleep 5
+
+    # QEMU-BMC Node 2
+    node2:
+      kind: linux
+      image: qemu-bmc:latest
+      runtime: docker
+      binds:
+        - ../vm/node2:/vm:rw
+        - ../iso:/iso:ro
+      env:
+        VM_MEMORY: "2048"
+        VM_CPUS: "2"
+        ENABLE_KVM: "true"
+        DEBUG: "false"
+        IPMI_USER: "admin"
+        IPMI_PASS: "password"
+      ports:
+        - 5902:5900      # VNC
+        - 6232:623/udp   # IPMI
+      exec:
+        - sleep 5
+
+    # Management Switch (optional - for IPMI network)
+    mgmt-switch:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - ip link set eth1 up
+        - ip link set eth2 up
+        # Create bridge for IPMI network
+        - apk add --no-cache bridge-utils || true
+        - brctl addbr br0 || true
+        - brctl addif br0 eth1 || true
+        - brctl addif br0 eth2 || true
+        - ip link set br0 up || true
+
+  # Link definitions
+  links:
+    # Connect node1 eth1 (IPMI) to management switch
+    - endpoints: ["node1:eth1", "mgmt-switch:eth1"]
+    # Connect node2 eth1 (IPMI) to management switch
+    - endpoints: ["node2:eth1", "mgmt-switch:eth2"]
+    # Direct link between node1 and node2 (VM network)
+    - endpoints: ["node1:eth2", "node2:eth2"]
+
+# Additional notes:
+#
+# Interface mapping in QEMU-BMC:
+#   eth0 - Container management (auto-configured by containerlab)
+#   eth1 - IPMI/BMC network
+#   eth2+ - VM passthrough (configure VM_NETWORKS env var)
+#
+# Before deploying:
+#   1. Build the qemu-bmc image: docker build -t qemu-bmc:latest ..
+#   2. Create VM disk directories:
+#      mkdir -p ../vm/node1 ../vm/node2
+#   3. Copy or create disk images:
+#      qemu-img create -f qcow2 ../vm/node1/disk.qcow2 20G
+#      qemu-img create -f qcow2 ../vm/node2/disk.qcow2 20G
+#
+# IPMI commands after deployment:
+#   # Get node1 IP from containerlab
+#   NODE1_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' clab-qemu-bmc-lab-node1)
+#
+#   # Power control
+#   ipmitool -I lanplus -H $NODE1_IP -U admin -P password power status
+#   ipmitool -I lanplus -H $NODE1_IP -U admin -P password power on
+#   ipmitool -I lanplus -H $NODE1_IP -U admin -P password power off
+#
+#   # Serial Over LAN
+#   ipmitool -I lanplus -H $NODE1_IP -U admin -P password sol activate
