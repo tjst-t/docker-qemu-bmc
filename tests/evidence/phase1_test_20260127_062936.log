@@ -1,0 +1,109 @@
+========================================
+Phase 1 Test Evidence
+Date: Tue Jan 27 06:29:36 UTC 2026
+Host: cdev
+========================================
+
+=== TEST 1: Docker Build ===
+ ---> Using cache
+ ---> f7d99a43399c
+Step 19/20 : VOLUME ["/vm", "/iso"]
+ ---> Using cache
+ ---> 88d14d57c15e
+Step 20/20 : CMD ["/scripts/start-qemu.sh"]
+ ---> Using cache
+ ---> 5ec1d4c3983f
+Successfully built 5ec1d4c3983f
+Successfully tagged qemu-bmc:phase1
+Build Result: 0
+
+=== TEST 2: Container Start (KVM mode) ===
+f38d6c64862620f6bfb83b924af655da2c723c27186bb55c5854283be0f7b949
+
+--- Container Status ---
+ID: f38d6c648626
+Status: Up 3 seconds
+Ports: 0.0.0.0:5900->5900/tcp, [::]:5900->5900/tcp
+
+--- Container Logs ---
+=== QEMU Configuration ===
+VM_MEMORY: 2048
+VM_CPUS: 2
+VM_DISK: /vm/disk.qcow2
+VM_CDROM: 
+VM_BOOT: c
+ENABLE_KVM: true
+VNC_PORT: 5900 (display :0)
+==========================
+Starting QEMU (Phase 1)...
+INFO: KVM acceleration enabled
+WARN: Disk image not found at /vm/disk.qcow2, booting without disk
+QEMU Command: qemu-system-x86_64 -machine q35,accel=kvm -cpu host -m 2048 -smp 2 -boot c -vnc :0 -nic none -nographic -serial mon:stdio
+c[?7l[2J[0mSeaBIOS (version 1.15.0-1)
+Booting from Hard Disk...
+Boot failed: could not read the boot disk
+
+Booting from DVD/CD...
+Boot failed: Could not read from CDROM (code 0003)
+Booting from Floppy...
+Boot failed: could not read the boot disk
+
+No bootable device.
+
+--- QEMU Process Check ---
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  5.0  0.2 2475472 43348 ?       Ssl  06:29   0:00 qemu-system-x86_64 -machine q35,accel=kvm -cpu host -m 2048 -smp 2 -boot c -vnc :0 -nic none -nographic -serial mon:stdio
+
+--- VNC Port Check ---
+LISTEN 0      4096         0.0.0.0:5900       0.0.0.0:*                                             
+LISTEN 0      4096            [::]:5900          [::]:*                                             
+
+=== TEST 3: Container Start (TCG mode) ===
+36f846bc18b863e0de04c0b139d899926830c5a9d0e0ef7ca4acb0ab7eaeacdc
+
+--- Container Status ---
+ID: 36f846bc18b8
+Status: Up 3 seconds
+Ports: 0.0.0.0:5901->5900/tcp, [::]:5901->5900/tcp
+
+--- Container Logs ---
+=== QEMU Configuration ===
+VM_MEMORY: 2048
+VM_CPUS: 2
+VM_DISK: /vm/disk.qcow2
+VM_CDROM: 
+VM_BOOT: c
+ENABLE_KVM: false
+VNC_PORT: 5900 (display :0)
+==========================
+Starting QEMU (Phase 1)...
+WARN: KVM not available, using TCG (slower)
+WARN: Disk image not found at /vm/disk.qcow2, booting without disk
+QEMU Command: qemu-system-x86_64 -machine q35,accel=tcg -cpu qemu64 -m 2048 -smp 2 -boot c -vnc :0 -nic none -nographic -serial mon:stdio
+c[?7l[2J[0mSeaBIOS (version 1.15.0-1)
+Booting from Hard Disk...
+Boot failed: could not read the boot disk
+
+Booting from DVD/CD...
+Boot failed: Could not read from CDROM (code 0003)
+Booting from Floppy...
+Boot failed: could not read the boot disk
+
+No bootable device.
+
+=== CLEANUP ===
+qemu-test-kvm
+qemu-test-tcg
+qemu-test-kvm
+qemu-test-tcg
+Containers removed
+
+========================================
+TEST SUMMARY
+========================================
+Test 1 (Build):        PASS
+Test 2 (KVM mode):     PASS
+Test 3 (TCG mode):     PASS
+========================================
+Log saved to: /home/ubuntu/project/qemu-with-bmc/tests/evidence/phase1_test_20260127_062936.log
+Test completed: Tue Jan 27 06:29:43 UTC 2026
