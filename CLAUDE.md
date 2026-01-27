@@ -10,7 +10,7 @@ Docker QEMU BMC is a containerized QEMU/KVM virtual machine with integrated IPMI
 
 ## Project Status
 
-This project is in early planning phase. Implementation follows a 7-phase approach - all phases are currently "未着手" (not started). See `docs/IMPLEMENTATION_PLAN.md` for the phased plan.
+Implementation follows a 7-phase approach. See `docs/IMPLEMENTATION_PLAN.md` for details and current progress.
 
 ## Build Commands
 
@@ -42,6 +42,30 @@ docker run --rm -it --privileged \
 ```
 
 Test framework: BATS (Bash Automated Testing System). Test dependencies: `bats`, `ipmitool`, `expect`, `curl`.
+
+## Test Evidence
+
+When implementing each phase, save test evidence to `tests/evidence/` with the following format:
+
+```
+tests/evidence/phase{N}_test_{YYYYMMDD_HHMMSS}.log
+```
+
+Each evidence file must include:
+- Test execution date and host information
+- All test commands executed
+- Complete command output (stdout/stderr)
+- Test summary (PASS/FAIL for each criterion)
+
+Example test script pattern:
+```bash
+LOG_FILE="tests/evidence/phase1_test_$(date +%Y%m%d_%H%M%S).log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "=== TEST: Description ==="
+# test command here
+echo "Result: PASS/FAIL"
+```
 
 ## Architecture
 
