@@ -222,8 +222,8 @@ main() {
 
     print_banner
 
-    # Set up logging
-    exec > >(tee -a "$LOG_FILE") 2>&1
+    # Set up logging - strip ANSI color codes for log file, keep colors for terminal
+    exec > >(tee >(sed 's/\x1b\[[0-9;]*m//g' >> "$LOG_FILE")) 2>&1
 
     log_info "Log file: $LOG_FILE"
     log_info "Test target: $test_target"
