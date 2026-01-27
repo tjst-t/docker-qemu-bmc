@@ -264,10 +264,10 @@ containerlab deploy -t containerlab/example.yml
 ```
 
 ### 合格基準
-- [ ] containerlabでデプロイできる
-- [ ] 複数ノード構成が動作
-- [ ] 全テストケースが合格
-- [ ] ドキュメントが完備
+- [x] containerlabでデプロイできる
+- [x] 複数ノード構成が動作
+- [x] 全テストケースが合格
+- [x] ドキュメントが完備
 
 ---
 
@@ -281,7 +281,7 @@ containerlab deploy -t containerlab/example.yml
 | 4 | 完了 | 2026-01-27 | 2026-01-27 | QMP経由電源制御、chassis_control実装 |
 | 5 | 完了 | 2026-01-27 | 2026-01-27 | TAP/macvtap、MAC管理、ネットワークパススルー |
 | 6 | 完了 | 2026-01-27 | 2026-01-27 | SOLブリッジ、シリアルソケット、IPMI SOL |
-| 7 | 未着手 | - | - | |
+| 7 | 完了 | 2026-01-27 | 2026-01-27 | 最終Dockerfile、docker-compose、containerlab対応 |
 
 ## リスクと対策
 
