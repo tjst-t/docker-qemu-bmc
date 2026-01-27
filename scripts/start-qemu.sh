@@ -3,6 +3,7 @@
 # Starts QEMU with VNC access and QMP control, managed by supervisord
 # Phase 4: Added QMP socket for power control
 # Phase 5: Added network passthrough support
+# Phase 6: Added serial console socket for SOL
 
 set -e
 
@@ -29,6 +30,9 @@ DEBUG="${DEBUG:-false}"
 # QMP socket for power control (Phase 4)
 QMP_SOCK="${QMP_SOCK:-/var/run/qemu/qmp.sock}"
 POWER_STATE_FILE="${POWER_STATE_FILE:-/var/run/qemu/power.state}"
+
+# Serial console socket for SOL (Phase 6)
+SERIAL_SOCK="${SERIAL_SOCK:-/var/run/qemu/console.sock}"
 
 # Calculate VNC display number (5900 = :0, 5901 = :1, etc.)
 VNC_DISPLAY=$((VNC_PORT - 5900))
@@ -106,8 +110,12 @@ build_qemu_cmd() {
         echo "INFO: Network setup not available, using no network" >&2
     fi
 
+    # Serial console socket for SOL (Phase 6)
+    cmd="$cmd -chardev socket,id=serial0,path=${SERIAL_SOCK},server=on,wait=off"
+    cmd="$cmd -serial chardev:serial0"
+
     # Run in foreground (no daemonize for container)
-    cmd="$cmd -nographic -serial mon:stdio"
+    cmd="$cmd -nographic -monitor stdio"
 
     echo "$cmd"
 }
@@ -131,8 +139,9 @@ main() {
     # Set up cleanup trap
     trap cleanup EXIT
 
-    # Remove stale QMP socket if exists
+    # Remove stale sockets if they exist
     rm -f "$QMP_SOCK"
+    rm -f "$SERIAL_SOCK"
 
     # Build and execute QEMU command
     QEMU_CMD=$(build_qemu_cmd)

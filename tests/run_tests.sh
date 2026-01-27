@@ -116,6 +116,11 @@ run_phase5() {
     run_test_suite "Phase 5" "$TESTS_DIR/integration/test_phase5_network.sh"
 }
 
+# Run Phase 6 tests
+run_phase6() {
+    run_test_suite "Phase 6" "$TESTS_DIR/integration/test_phase6_sol.sh"
+}
+
 # Run all integration tests
 run_integration() {
     run_phase1
@@ -123,6 +128,7 @@ run_integration() {
     run_phase3
     run_phase4
     run_phase5
+    run_phase6
 }
 
 # Run unit tests (placeholder)
@@ -258,12 +264,18 @@ main() {
             start_test_container || exit 1
             run_phase5
             ;;
+        phase6)
+            CONTAINER_IMAGE="qemu-bmc:phase6"
+            docker build -f Dockerfile.phase6 -t "$CONTAINER_IMAGE" . 2>&1 | tail -5
+            start_test_container || exit 1
+            run_phase6
+            ;;
         quick)
             build_image || exit 1
             run_quick
             ;;
         *)
-            echo "Usage: $0 {all|integration|unit|phase1|phase2|phase3|phase4|phase5|quick}"
+            echo "Usage: $0 {all|integration|unit|phase1|phase2|phase3|phase4|phase5|phase6|quick}"
             exit 1
             ;;
     esac

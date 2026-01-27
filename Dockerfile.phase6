@@ -1,17 +1,15 @@
-# Phase 4: Power Control via IPMI
-# Goal: IPMI power commands control QEMU via QMP
-# Also includes Phase 5 network setup and Phase 6 SOL components
+# Phase 6: Serial Over LAN (SOL)
+# Goal: IPMI SOL access to VM serial console
 
 FROM ubuntu:22.04
 
 LABEL maintainer="qemu-bmc"
-LABEL description="Phase 4-6: QEMU container with IPMI power control, network, and SOL"
+LABEL description="Phase 6: QEMU container with Serial Over LAN support"
 
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install QEMU, supervisord, OpenIPMI, and essential utilities
-# Added socat for QMP communication, iproute2 for network setup
+# Install QEMU, supervisord, OpenIPMI, and utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
     qemu-system-x86 \
     qemu-utils \
@@ -79,7 +77,7 @@ EXPOSE 623/udp
 # Volume mount points
 VOLUME ["/vm", "/iso"]
 
-# Health check (includes sol-bridge for Phase 6)
+# Health check - now includes sol-bridge
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD supervisorctl status qemu | grep -q RUNNING && \
         supervisorctl status ipmi | grep -q RUNNING && \

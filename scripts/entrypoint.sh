@@ -25,6 +25,10 @@ export IPMI_PASS="${IPMI_PASS:-password}"
 export VM_NETWORKS="${VM_NETWORKS:-}"
 export NETWORK_STATE_DIR="${NETWORK_STATE_DIR:-/var/run/qemu/network}"
 
+# SOL settings (Phase 6)
+export SERIAL_SOCK="${SERIAL_SOCK:-/var/run/qemu/console.sock}"
+export SOL_PORT="${SOL_PORT:-9002}"
+
 # Debug output
 if [ "$DEBUG" = "true" ]; then
     echo "=== Container Environment ==="
