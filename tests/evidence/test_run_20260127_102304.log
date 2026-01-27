@@ -1,0 +1,208 @@
+[0;34m[INFO][0m Log file: /home/ubuntu/project/qemu-with-bmc/tests/evidence/test_run_20260127_102304.log
+[0;34m[INFO][0m Test target: all
+
+[0;34m========================================[0m
+[0;34m Building Docker Image[0m
+[0;34m========================================[0m
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  490.5kB
+Step 1/34 : FROM ubuntu:22.04
+ ---> 65c77cbc27c2
+Step 2/34 : LABEL maintainer="qemu-bmc"
+ ---> Using cache
+ ---> 077071b56bd4
+Step 3/34 : LABEL description="Phase 4: QEMU container with IPMI power control"
+ ---> Using cache
+ ---> 153ca37a70b5
+Step 4/34 : ENV DEBIAN_FRONTEND=noninteractive
+ ---> Using cache
+ ---> f64fdee35d0c
+Step 5/34 : RUN apt-get update && apt-get install -y --no-install-recommends     qemu-system-x86     qemu-utils     supervisor     openipmi     ipmitool     socat     ca-certificates     && rm -rf /var/lib/apt/lists/*
+ ---> Using cache
+ ---> 5114020559ec
+Step 6/34 : RUN mkdir -p /vm /iso /scripts /configs/qemu /configs/ipmi_sim     /var/run/qemu /var/log/qemu /var/log/supervisor /var/log/ipmi
+ ---> Using cache
+ ---> 5640e0e95bca
+Step 7/34 : COPY configs/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+ ---> Using cache
+ ---> a57234925dc2
+Step 8/34 : COPY configs/qemu/default.conf /configs/qemu/
+ ---> Using cache
+ ---> 6aaf000f0f62
+Step 9/34 : COPY configs/ipmi_sim/lan.conf /configs/ipmi_sim/
+ ---> Using cache
+ ---> 5eaacd39bfe6
+Step 10/34 : COPY configs/ipmi_sim/ipmisim.emu /configs/ipmi_sim/
+ ---> Using cache
+ ---> e9d2cfea3ebf
+Step 11/34 : COPY scripts/entrypoint.sh /scripts/
+ ---> Using cache
+ ---> 3fa0481cf13a
+Step 12/34 : COPY scripts/start-qemu.sh /scripts/
+ ---> Using cache
+ ---> 8ccb2087e65b
+Step 13/34 : COPY scripts/start-ipmi.sh /scripts/
+ ---> Using cache
+ ---> d51713bd0e44
+Step 14/34 : COPY scripts/power-control.sh /scripts/
+ ---> Using cache
+ ---> d0e5309924d2
+Step 15/34 : COPY scripts/chassis-control.sh /scripts/
+ ---> Using cache
+ ---> edc1787c44f4
+Step 16/34 : RUN chmod +x /scripts/*.sh
+ ---> Using cache
+ ---> b01254f75ba6
+Step 17/34 : ENV VM_MEMORY=2048
+ ---> Using cache
+ ---> 7d1b387db1d9
+Step 18/34 : ENV VM_CPUS=2
+ ---> Using cache
+ ---> 025cb9b28d23
+Step 19/34 : ENV VM_DISK=/vm/disk.qcow2
+ ---> Using cache
+ ---> 9ae8fcc22ce7
+Step 20/34 : ENV VM_CDROM=""
+ ---> Using cache
+ ---> b46c57321d5b
+Step 21/34 : ENV VM_BOOT=c
+ ---> Using cache
+ ---> 2464ba23a5f3
+Step 22/34 : ENV ENABLE_KVM=true
+ ---> Using cache
+ ---> ab431d00dd8c
+Step 23/34 : ENV VNC_PORT=5900
+ ---> Using cache
+ ---> bc6977dfaaa2
+Step 24/34 : ENV DEBUG=false
+ ---> Using cache
+ ---> b4fac83194f3
+Step 25/34 : ENV IPMI_USER=admin
+ ---> Using cache
+ ---> ed15cccdc865
+Step 26/34 : ENV IPMI_PASS=password
+ ---> Using cache
+ ---> 532109637864
+Step 27/34 : ENV QMP_SOCK=/var/run/qemu/qmp.sock
+ ---> Using cache
+ ---> a89bd5b22573
+Step 28/34 : ENV POWER_STATE_FILE=/var/run/qemu/power.state
+ ---> Using cache
+ ---> fd1578b10e26
+Step 29/34 : EXPOSE 5900
+ ---> Using cache
+ ---> dd8cd3c38db1
+Step 30/34 : EXPOSE 623/udp
+ ---> Using cache
+ ---> 1a207aa24be5
+Step 31/34 : VOLUME ["/vm", "/iso"]
+ ---> Using cache
+ ---> 66b3ee0937ce
+Step 32/34 : HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3     CMD supervisorctl status qemu | grep -q RUNNING &&         supervisorctl status ipmi | grep -q RUNNING || exit 1
+ ---> Using cache
+ ---> 72718cf53a36
+Step 33/34 : ENTRYPOINT ["/scripts/entrypoint.sh"]
+ ---> Using cache
+ ---> 0e9551ed8326
+Step 34/34 : CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ ---> Using cache
+ ---> dfbfac7ea737
+Successfully built dfbfac7ea737
+Successfully tagged qemu-bmc:phase4
+Step 34/34 : CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ ---> Using cache
+ ---> dfbfac7ea737
+Successfully built dfbfac7ea737
+Successfully tagged qemu-bmc:phase4
+[0;32m[PASS][0m Docker image built successfully
+[0;34m[INFO][0m Starting test container: qemu-bmc-test
+[0;34m[INFO][0m Waiting for container to be ready...
+[0;34m[INFO][0m Container is healthy
+
+[0;34m========================================[0m
+[0;34m Phase 1 Tests: Basic QEMU Container[0m
+[0;34m========================================[0m
+[0;34m[INFO][0m Setting up test environment...
+[0;34m[INFO][0m Starting test container: qemu-bmc-test
+qemu-bmc-test
+[0;34m[INFO][0m Waiting for container to be ready...
+[0;34m[INFO][0m Container is healthy
+  Testing: Docker build ... [0;32m[PASS][0m OK
+  Testing: Container starts ... [0;32m[PASS][0m OK
+  Testing: QEMU process running ... [0;32m[PASS][0m OK
+  Testing: QEMU acceleration (KVM/TCG) ... [0;34m[INFO][0m Using KVM acceleration
+[0;32m[PASS][0m OK
+  Testing: VNC port listening ... [0;32m[PASS][0m OK
+  Testing: VNC connection ... [0;32m[PASS][0m OK
+
+[0;34m========================================[0m
+[0;34m Phase 2 Tests: Process Management (supervisord)[0m
+[0;34m========================================[0m
+[0;34m[INFO][0m Using existing test container
+  Testing: supervisord is PID 1 ... [0;32m[PASS][0m OK
+  Testing: supervisorctl status works ... [0;32m[PASS][0m OK
+  Testing: QEMU managed by supervisord ... [0;32m[PASS][0m OK
+  Testing: IPMI managed by supervisord ... [0;32m[PASS][0m OK
+  Testing: Process priority ... [0;32m[PASS][0m OK
+  Testing: Log files exist ... [0;32m[PASS][0m OK
+  Testing: supervisorctl stop/start ... [0;32m[PASS][0m OK
+
+[0;34m========================================[0m
+[0;34m Phase 3 Tests: IPMI Foundation[0m
+[0;34m========================================[0m
+[0;34m[INFO][0m Using existing test container
+  Testing: ipmi_sim process running ... [0;32m[PASS][0m OK
+  Testing: ipmi_sim is correct process ... [0;32m[PASS][0m OK
+  Testing: UDP 623 listening ... [0;32m[PASS][0m OK
+  Testing: IPMI 1.5 (lan) connection ... [0;32m[PASS][0m OK
+  Testing: IPMI 2.0 (lanplus) connection ... [0;32m[PASS][0m OK
+  Testing: mc info content ... [0;32m[PASS][0m OK
+  Testing: IPMI Version 2.0 ... [0;32m[PASS][0m OK
+  Testing: Chassis Device support ... [0;32m[PASS][0m OK
+  Testing: Auth with correct credentials ... [0;32m[PASS][0m OK
+  Testing: Auth fails with wrong password ... [0;32m[PASS][0m OK
+  Testing: Auth fails with wrong username ... [0;32m[PASS][0m OK
+  Testing: SEL accessible ... [0;32m[PASS][0m OK
+
+[0;34m========================================[0m
+[0;34m Phase 4 Tests: Power Control[0m
+[0;34m========================================[0m
+[0;34m[INFO][0m Using existing test container
+  Testing: QMP socket exists ... [0;32m[PASS][0m OK
+  Testing: Power state file ... [0;32m[PASS][0m OK
+  Testing: power status command ... [0;32m[PASS][0m OK
+  Testing: power status shows on ... [0;32m[PASS][0m OK
+  Testing: power off command ... [0;32m[PASS][0m OK
+  Testing: power on command ... [0;32m[PASS][0m OK
+  Testing: power cycle command ... [0;34m[INFO][0m PID changed from 315 to 404
+[0;32m[PASS][0m OK
+  Testing: power reset command (QMP) ... [0;34m[INFO][0m PID unchanged (404) - QMP reset worked
+[0;32m[PASS][0m OK
+  Testing: State consistency ... [0;32m[PASS][0m OK
+  Testing: chassis-control.sh script ... [0;32m[PASS][0m OK
+  Testing: QMP communication ... [0;32m[PASS][0m OK
+[0;34m[INFO][0m Cleaning up...
+[0;34m[INFO][0m Stopping test container: qemu-bmc-test
+qemu-bmc-test
+qemu-bmc-test
+
+╔══════════════════════════════════════════════════════════════╗
+║                    FINAL TEST SUMMARY                        ║
+╚══════════════════════════════════════════════════════════════╝
+
+  Total Tests:  36
+  [0;32mPassed:       36[0m
+  [0;31mFailed:       0[0m
+  [0;33mSkipped:      0[0m
+
+[0;32m╔══════════════════════════════════════════════════════════════╗[0m
+[0;32m║                    ALL TESTS PASSED!                         ║[0m
+[0;32m╚══════════════════════════════════════════════════════════════╝[0m
+
+Test completed at: Tue Jan 27 10:24:11 UTC 2026
+Log saved to: /home/ubuntu/project/qemu-with-bmc/tests/evidence/test_run_20260127_102304.log
+[0;34m[INFO][0m Cleaning up...
+[0;34m[INFO][0m Stopping test container: qemu-bmc-test
