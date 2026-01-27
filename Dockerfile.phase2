@@ -1,0 +1,57 @@
+# Phase 2: Process Management with supervisord
+# Goal: Manage QEMU process with supervisord for state monitoring
+
+FROM ubuntu:22.04
+
+LABEL maintainer="qemu-bmc"
+LABEL description="Phase 2: QEMU container with supervisord process management"
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install QEMU, supervisord, and essential utilities
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    qemu-system-x86 \
+    qemu-utils \
+    supervisor \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directories
+RUN mkdir -p /vm /iso /scripts /configs/qemu \
+    /var/run/qemu /var/log/qemu /var/log/supervisor
+
+# Copy configuration files
+COPY configs/supervisord.conf /etc/supervisor/supervisord.conf
+COPY configs/qemu/default.conf /configs/qemu/
+
+# Copy scripts
+COPY scripts/entrypoint.sh /scripts/
+COPY scripts/start-qemu.sh /scripts/
+
+# Make scripts executable
+RUN chmod +x /scripts/*.sh
+
+# Environment variables with defaults
+ENV VM_MEMORY=2048
+ENV VM_CPUS=2
+ENV VM_DISK=/vm/disk.qcow2
+ENV VM_CDROM=""
+ENV VM_BOOT=c
+ENV ENABLE_KVM=true
+ENV VNC_PORT=5900
+ENV DEBUG=false
+
+# Expose VNC port
+EXPOSE 5900
+
+# Volume mount points
+VOLUME ["/vm", "/iso"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD supervisorctl status qemu | grep -q RUNNING || exit 1
+
+# Entry point - supervisord as PID 1
+ENTRYPOINT ["/scripts/entrypoint.sh"]
+CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]

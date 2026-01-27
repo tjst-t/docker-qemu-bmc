@@ -1,6 +1,6 @@
 #!/bin/bash
-# start-qemu.sh - Minimal QEMU startup script for Phase 1
-# Starts QEMU with VNC access for basic verification
+# start-qemu.sh - QEMU startup script
+# Starts QEMU with VNC access, managed by supervisord (Phase 2+)
 
 set -e
 
@@ -88,7 +88,7 @@ build_qemu_cmd() {
 
 # Main
 main() {
-    echo "Starting QEMU (Phase 1)..."
+    echo "Starting QEMU..."
 
     # Build and execute QEMU command
     QEMU_CMD=$(build_qemu_cmd)

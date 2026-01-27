@@ -1,0 +1,91 @@
+========================================
+Phase 2 Test Evidence
+Date: Tue Jan 27 06:38:37 UTC 2026
+Host: cdev
+========================================
+
+=== TEST 1: Docker Build ===
+Step 24/24 : CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+ ---> Using cache
+ ---> 3f07fff0d484
+Successfully built 3f07fff0d484
+Successfully tagged qemu-bmc:phase2
+Build Result: 0
+
+=== TEST 2: Container Start ===
+a11fba286cceebaf0c09bd32e20ab27cc1005c60d310f4f535056148f1b730a4
+
+--- Container Status ---
+ID: a11fba286cce
+Status: Up 5 seconds (health: starting)
+Ports: 0.0.0.0:5902->5900/tcp, [::]:5902->5900/tcp
+
+=== TEST 3: supervisord as PID 1 ===
+    PID COMMAND
+      1 supervisord
+
+=== TEST 4: supervisorctl status ===
+qemu                             RUNNING   pid 8, uptime 0:00:04
+
+=== TEST 5: Process List ===
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  2.6  0.1  34132 27392 ?        Ss   06:38   0:00 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+root           8  3.2  0.2 2475472 43648 ?       Sl   06:38   0:00 qemu-system-x86_64 -machine q35,accel=kvm -cpu host -m 2048 -smp 2 -boot c -vnc :0 -nic none -nographic -serial mon:stdio
+root          35  0.0  0.0   7064  2944 ?        Rs   06:38   0:00 ps aux
+
+=== TEST 6: QEMU Log ===
+=== QEMU Configuration ===
+VM_MEMORY: 2048
+VM_CPUS: 2
+VM_DISK: /vm/disk.qcow2
+VM_CDROM: 
+VM_BOOT: c
+ENABLE_KVM: true
+VNC_PORT: 5900 (display :0)
+==========================
+Starting QEMU...
+INFO: KVM acceleration enabled
+WARN: Disk image not found at /vm/disk.qcow2, booting without disk
+QEMU Command: qemu-system-x86_64 -machine q35,accel=kvm -cpu host -m 2048 -smp 2 -boot c -vnc :0 -nic none -nographic -serial mon:stdio
+c[?7l[2J[0mSeaBIOS (version 1.15.0-1)
+Booting from Hard Disk...
+Boot failed: could not read the boot disk
+
+Booting from DVD/CD...
+Boot failed: Could not read from CDROM (code 0003)
+Booting from Floppy...
+Boot failed: could not read the boot disk
+
+No bootable device.
+
+=== TEST 7: Supervisor Log ===
+2026-01-27 06:38:37,494 INFO Set uid to user 0 succeeded
+2026-01-27 06:38:37,497 INFO RPC interface 'supervisor' initialized
+2026-01-27 06:38:37,497 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-01-27 06:38:37,497 INFO supervisord started with pid 1
+2026-01-27 06:38:38,511 INFO spawned: 'qemu' with pid 8
+2026-01-27 06:38:41,677 INFO success: qemu entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
+
+=== TEST 8: VNC Port Check ===
+LISTEN 0      4096         0.0.0.0:5902       0.0.0.0:*                                             
+LISTEN 0      4096            [::]:5902          [::]:*                                             
+
+=== CLEANUP ===
+qemu-phase2-test
+qemu-phase2-test
+Container removed
+
+========================================
+TEST SUMMARY
+========================================
+Test 1 (Build):              PASS
+Test 2 (Container Start):    PASS
+Test 3 (PID 1 supervisord):  PASS
+Test 4 (qemu RUNNING):       PASS
+Test 5 (Process List):       PASS
+Test 6 (QEMU Log):           PASS
+Test 7 (Supervisor Log):     PASS
+Test 8 (VNC Port):           PASS
+========================================
+Log saved to: /home/ubuntu/project/qemu-with-bmc/tests/evidence/phase2_test_20260127_063837.log
+Test completed: Tue Jan 27 06:38:44 UTC 2026
