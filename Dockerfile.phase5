@@ -1,17 +1,15 @@
-# Phase 4: Power Control via IPMI
-# Goal: IPMI power commands control QEMU via QMP
-# Also includes Phase 5 network setup components
+# Phase 5: Network Setup
+# Goal: eth2+ interfaces passthrough to VM
 
 FROM ubuntu:22.04
 
 LABEL maintainer="qemu-bmc"
-LABEL description="Phase 4+5: QEMU container with IPMI power control and network passthrough"
+LABEL description="Phase 5: QEMU container with network passthrough"
 
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install QEMU, supervisord, OpenIPMI, and essential utilities
-# Added socat for QMP communication, iproute2 for network setup
+# Install QEMU, supervisord, OpenIPMI, and network utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
     qemu-system-x86 \
     qemu-utils \
@@ -63,7 +61,7 @@ ENV IPMI_PASS=password
 ENV QMP_SOCK=/var/run/qemu/qmp.sock
 ENV POWER_STATE_FILE=/var/run/qemu/power.state
 
-# Network settings (Phase 5)
+# Network settings
 ENV VM_NETWORKS=""
 ENV NETWORK_STATE_DIR=/var/run/qemu/network
 

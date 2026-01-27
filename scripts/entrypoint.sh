@@ -5,7 +5,7 @@
 set -e
 
 # Create necessary directories
-mkdir -p /var/run/qemu /var/log/qemu /var/log/supervisor /var/log/ipmi
+mkdir -p /var/run/qemu /var/run/qemu/network /var/log/qemu /var/log/supervisor /var/log/ipmi
 
 # Export environment variables for child processes
 export VM_MEMORY="${VM_MEMORY:-2048}"
@@ -20,6 +20,10 @@ export DEBUG="${DEBUG:-false}"
 # IPMI settings
 export IPMI_USER="${IPMI_USER:-admin}"
 export IPMI_PASS="${IPMI_PASS:-password}"
+
+# Network settings (Phase 5)
+export VM_NETWORKS="${VM_NETWORKS:-}"
+export NETWORK_STATE_DIR="${NETWORK_STATE_DIR:-/var/run/qemu/network}"
 
 # Debug output
 if [ "$DEBUG" = "true" ]; then

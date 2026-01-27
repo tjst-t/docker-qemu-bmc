@@ -2,12 +2,18 @@
 # start-qemu.sh - QEMU startup script
 # Starts QEMU with VNC access and QMP control, managed by supervisord
 # Phase 4: Added QMP socket for power control
+# Phase 5: Added network passthrough support
 
 set -e
 
 # Load default configuration
 if [ -f /configs/qemu/default.conf ]; then
     source /configs/qemu/default.conf
+fi
+
+# Load network setup functions (Phase 5)
+if [ -f /scripts/setup-network.sh ]; then
+    source /scripts/setup-network.sh
 fi
 
 # Environment variables (with defaults)
@@ -85,8 +91,20 @@ build_qemu_cmd() {
     # QMP socket for power control (Phase 4)
     cmd="$cmd -qmp unix:${QMP_SOCK},server,nowait"
 
-    # Disable default network (will be configured in later phases)
-    cmd="$cmd -nic none"
+    # Network configuration (Phase 5)
+    if type build_network_args &>/dev/null; then
+        local net_args=$(build_network_args 2>/dev/null)
+        if [ -n "$net_args" ]; then
+            cmd="$cmd $net_args"
+            echo "INFO: Network configured: $net_args" >&2
+        else
+            cmd="$cmd -nic none"
+            echo "INFO: No network interfaces configured" >&2
+        fi
+    else
+        cmd="$cmd -nic none"
+        echo "INFO: Network setup not available, using no network" >&2
+    fi
 
     # Run in foreground (no daemonize for container)
     cmd="$cmd -nographic -serial mon:stdio"
