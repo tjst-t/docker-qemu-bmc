@@ -12,6 +12,7 @@ VALUE="$4"
 
 POWER_STATE_FILE="/var/run/qemu/power.state"
 BOOT_DEVICE_FILE="/var/run/qemu/boot.device"
+BOOT_CHANGED_FILE="/var/run/qemu/boot.changed"
 DEBUG="${DEBUG:-false}"
 
 log() {
@@ -50,7 +51,8 @@ set_power() {
     log "set_power called with value: $val"
 
     if [ "$val" = "1" ]; then
-        # Power On
+        # Power On - clear boot changed flag
+        rm -f "$BOOT_CHANGED_FILE"
         if ! is_qemu_running; then
             supervisorctl start qemu >/dev/null 2>&1 || true
             log "Power ON executed"
@@ -72,8 +74,19 @@ set_reset() {
     log "set_reset called with value: $val"
 
     if [ "$val" = "1" ]; then
+        # Check if boot device was changed - need full power cycle
+        if [ -f "$BOOT_CHANGED_FILE" ] && [ "$(cat "$BOOT_CHANGED_FILE")" = "1" ]; then
+            log "Boot device changed, converting reset to power cycle"
+            rm -f "$BOOT_CHANGED_FILE"
+            # Power cycle: stop then start QEMU to apply new boot device
+            supervisorctl stop qemu >/dev/null 2>&1 || true
+            sleep 1
+            supervisorctl start qemu >/dev/null 2>&1 || true
+            return
+        fi
+
+        # Normal reset via QMP
         if is_qemu_running; then
-            # Try QMP reset first
             local QMP_SOCK="/var/run/qemu/qmp.sock"
             if [ -S "$QMP_SOCK" ]; then
                 echo -e '{"execute":"qmp_capabilities"}\n{"execute":"system_reset"}' | \
@@ -103,8 +116,10 @@ set_boot() {
     log "set_boot called with value: $val"
 
     case "$val" in
-        none|pxe|cdrom|bios|default)
+        none|pxe|disk|cdrom|bios|default)
             echo "$val" > "$BOOT_DEVICE_FILE"
+            echo "1" > "$BOOT_CHANGED_FILE"  # Mark as changed for next reset/power on
+            log "Boot device set to: $val"
             ;;
         *)
             echo "Invalid boot device: $val"

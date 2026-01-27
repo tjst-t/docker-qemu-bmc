@@ -34,6 +34,30 @@ POWER_STATE_FILE="${POWER_STATE_FILE:-/var/run/qemu/power.state}"
 # Serial console socket for SOL (Phase 6)
 SERIAL_SOCK="${SERIAL_SOCK:-/var/run/qemu/console.sock}"
 
+# Boot device file (set by IPMI chassis bootdev)
+BOOT_DEVICE_FILE="${BOOT_DEVICE_FILE:-/var/run/qemu/boot.device}"
+
+# Get boot device from IPMI setting and convert to QEMU parameter
+get_boot_param() {
+    local boot_dev="default"
+
+    # Read boot device from IPMI setting if exists
+    if [ -f "$BOOT_DEVICE_FILE" ]; then
+        boot_dev=$(cat "$BOOT_DEVICE_FILE")
+    fi
+
+    # Map IPMI boot device to QEMU -boot parameter
+    case "$boot_dev" in
+        pxe)     echo "n" ;;        # Network boot
+        disk)    echo "c" ;;        # Hard disk
+        cdrom)   echo "d" ;;        # CD-ROM
+        bios)    echo "menu=on" ;;  # Boot menu
+        none)    echo "c" ;;        # Default to disk
+        default) echo "c" ;;        # Default to disk
+        *)       echo "c" ;;        # Fallback to disk
+    esac
+}
+
 # Calculate VNC display number (5900 = :0, 5901 = :1, etc.)
 VNC_DISPLAY=$((VNC_PORT - 5900))
 
@@ -86,8 +110,10 @@ build_qemu_cmd() {
         cmd="$cmd -cdrom ${VM_CDROM}"
     fi
 
-    # Boot device
-    cmd="$cmd -boot ${VM_BOOT}"
+    # Boot device - check IPMI setting first, then env var fallback
+    local boot_param=$(get_boot_param)
+    cmd="$cmd -boot ${boot_param}"
+    echo "INFO: Boot device: ${boot_param}" >&2
 
     # VNC configuration (listen on all interfaces for container access)
     cmd="$cmd -vnc :${VNC_DISPLAY}"
