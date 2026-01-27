@@ -1,6 +1,7 @@
 #!/bin/bash
 # start-qemu.sh - QEMU startup script
-# Starts QEMU with VNC access, managed by supervisord (Phase 2+)
+# Starts QEMU with VNC access and QMP control, managed by supervisord
+# Phase 4: Added QMP socket for power control
 
 set -e
 
@@ -18,6 +19,10 @@ VM_BOOT="${VM_BOOT:-c}"
 ENABLE_KVM="${ENABLE_KVM:-true}"
 VNC_PORT="${VNC_PORT:-5900}"
 DEBUG="${DEBUG:-false}"
+
+# QMP socket for power control (Phase 4)
+QMP_SOCK="${QMP_SOCK:-/var/run/qemu/qmp.sock}"
+POWER_STATE_FILE="${POWER_STATE_FILE:-/var/run/qemu/power.state}"
 
 # Calculate VNC display number (5900 = :0, 5901 = :1, etc.)
 VNC_DISPLAY=$((VNC_PORT - 5900))
@@ -77,6 +82,9 @@ build_qemu_cmd() {
     # VNC configuration (listen on all interfaces for container access)
     cmd="$cmd -vnc :${VNC_DISPLAY}"
 
+    # QMP socket for power control (Phase 4)
+    cmd="$cmd -qmp unix:${QMP_SOCK},server,nowait"
+
     # Disable default network (will be configured in later phases)
     cmd="$cmd -nic none"
 
@@ -86,9 +94,27 @@ build_qemu_cmd() {
     echo "$cmd"
 }
 
+# Set power state
+set_power_state() {
+    local state="$1"
+    echo "$state" > "$POWER_STATE_FILE"
+}
+
+# Cleanup on exit
+cleanup() {
+    set_power_state "off"
+    echo "QEMU stopped, power state set to off"
+}
+
 # Main
 main() {
     echo "Starting QEMU..."
+
+    # Set up cleanup trap
+    trap cleanup EXIT
+
+    # Remove stale QMP socket if exists
+    rm -f "$QMP_SOCK"
 
     # Build and execute QEMU command
     QEMU_CMD=$(build_qemu_cmd)
@@ -96,6 +122,9 @@ main() {
     if [ "$DEBUG" = "true" ]; then
         echo "QEMU Command: $QEMU_CMD"
     fi
+
+    # Mark power state as on
+    set_power_state "on"
 
     # Execute QEMU
     exec $QEMU_CMD
