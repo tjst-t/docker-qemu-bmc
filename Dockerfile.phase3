@@ -1,0 +1,68 @@
+# Phase 3: IPMI Foundation with ipmi_sim
+# Goal: ipmi_sim responds to basic IPMI commands (mc info)
+
+FROM ubuntu:22.04
+
+LABEL maintainer="qemu-bmc"
+LABEL description="Phase 3: QEMU container with IPMI BMC simulation"
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install QEMU, supervisord, OpenIPMI, and essential utilities
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    qemu-system-x86 \
+    qemu-utils \
+    supervisor \
+    openipmi \
+    ipmitool \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directories
+RUN mkdir -p /vm /iso /scripts /configs/qemu /configs/ipmi_sim \
+    /var/run/qemu /var/log/qemu /var/log/supervisor /var/log/ipmi
+
+# Copy configuration files
+COPY configs/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY configs/qemu/default.conf /configs/qemu/
+COPY configs/ipmi_sim/lan.conf /configs/ipmi_sim/
+COPY configs/ipmi_sim/ipmisim.emu /configs/ipmi_sim/
+
+# Copy scripts
+COPY scripts/entrypoint.sh /scripts/
+COPY scripts/start-qemu.sh /scripts/
+COPY scripts/start-ipmi.sh /scripts/
+
+# Make scripts executable
+RUN chmod +x /scripts/*.sh
+
+# Environment variables with defaults
+ENV VM_MEMORY=2048
+ENV VM_CPUS=2
+ENV VM_DISK=/vm/disk.qcow2
+ENV VM_CDROM=""
+ENV VM_BOOT=c
+ENV ENABLE_KVM=true
+ENV VNC_PORT=5900
+ENV DEBUG=false
+
+# IPMI settings
+ENV IPMI_USER=admin
+ENV IPMI_PASS=password
+
+# Expose ports
+EXPOSE 5900
+EXPOSE 623/udp
+
+# Volume mount points
+VOLUME ["/vm", "/iso"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD supervisorctl status qemu | grep -q RUNNING && \
+        supervisorctl status ipmi | grep -q RUNNING || exit 1
+
+# Entry point - supervisord as PID 1
+ENTRYPOINT ["/scripts/entrypoint.sh"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

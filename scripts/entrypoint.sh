@@ -5,7 +5,7 @@
 set -e
 
 # Create necessary directories
-mkdir -p /var/run/qemu /var/log/qemu /var/log/supervisor
+mkdir -p /var/run/qemu /var/log/qemu /var/log/supervisor /var/log/ipmi
 
 # Export environment variables for child processes
 export VM_MEMORY="${VM_MEMORY:-2048}"
@@ -17,6 +17,10 @@ export ENABLE_KVM="${ENABLE_KVM:-true}"
 export VNC_PORT="${VNC_PORT:-5900}"
 export DEBUG="${DEBUG:-false}"
 
+# IPMI settings
+export IPMI_USER="${IPMI_USER:-admin}"
+export IPMI_PASS="${IPMI_PASS:-password}"
+
 # Debug output
 if [ "$DEBUG" = "true" ]; then
     echo "=== Container Environment ==="
@@ -25,6 +29,7 @@ if [ "$DEBUG" = "true" ]; then
     echo "VM_DISK: ${VM_DISK}"
     echo "ENABLE_KVM: ${ENABLE_KVM}"
     echo "VNC_PORT: ${VNC_PORT}"
+    echo "IPMI_USER: ${IPMI_USER}"
     echo "============================="
 fi
 

@@ -1,0 +1,110 @@
+========================================
+Phase 3 Test Evidence
+Date: Tue Jan 27 07:03:38 UTC 2026
+Host: cdev
+========================================
+
+=== TEST 1: Docker Build ===
+Step 30/30 : CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ ---> Using cache
+ ---> 0ce1aa2efef2
+Successfully built 0ce1aa2efef2
+Successfully tagged qemu-bmc:phase3
+Build Result: 0
+
+=== TEST 2: Container Start ===
+3015fd7b15d27cf100add220015f553b654e4bd7a09e5515130c2cd85af536db
+
+--- Container Status ---
+ID: 3015fd7b15d2
+Status: Up 5 seconds (health: starting)
+Ports: 0.0.0.0:6230->623/udp, [::]:6230->623/udp, 0.0.0.0:5903->5900/tcp, [::]:5903->5900/tcp
+
+=== TEST 3: supervisorctl status ===
+ipmi                             RUNNING   pid 8, uptime 0:00:04
+qemu                             RUNNING   pid 9, uptime 0:00:04
+
+=== TEST 4: IPMI Process Check ===
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           8  0.0  0.0   7636  3584 ?        S    07:03   0:00 /usr/bin/ipmi_sim -n -c /configs/ipmi_sim/lan.conf -f /configs/ipmi_sim/ipmisim.emu
+
+=== TEST 5: UDP 6230 Listening (host) ===
+UNCONN 0      0               0.0.0.0:6230      0.0.0.0:*          
+UNCONN 0      0                  [::]:6230         [::]:*          
+
+=== TEST 6: mc info (IPMI 1.5) ===
+Device ID                 : 0
+Device Revision           : 0
+Firmware Revision         : 1.00
+IPMI Version              : 2.0
+Manufacturer ID           : 0
+Manufacturer Name         : Unknown
+Product ID                : 0 (0x0000)
+Product Name              : Unknown (0x0)
+Device Available          : yes
+Provides Device SDRs      : no
+Additional Device Support :
+    Sensor Device
+    SDR Repository Device
+    SEL Device
+    FRU Inventory Device
+    IPMB Event Receiver
+    Chassis Device
+Aux Firmware Rev Info     : 
+    0x00
+    0x00
+    0x00
+    0x00
+
+=== TEST 7: mc info (IPMI 2.0 lanplus) ===
+Device ID                 : 0
+Device Revision           : 0
+Firmware Revision         : 1.00
+IPMI Version              : 2.0
+Manufacturer ID           : 0
+Manufacturer Name         : Unknown
+Product ID                : 0 (0x0000)
+Product Name              : Unknown (0x0)
+Device Available          : yes
+Provides Device SDRs      : no
+Additional Device Support :
+    Sensor Device
+    SDR Repository Device
+    SEL Device
+    FRU Inventory Device
+    IPMB Event Receiver
+    Chassis Device
+Aux Firmware Rev Info     : 
+    0x00
+    0x00
+    0x00
+    0x00
+
+=== TEST 8: Wrong Password (should fail) ===
+Error: Unable to establish IPMI v2 / RMCP+ session
+Result: Authentication rejected (expected)
+
+=== TEST 9: Wrong Username (should fail) ===
+Error: Unable to establish IPMI v2 / RMCP+ session
+Result: Authentication rejected (expected)
+
+=== CLEANUP ===
+qemu-phase3-test
+qemu-phase3-test
+Container removed
+
+========================================
+TEST SUMMARY
+========================================
+Test 1 (Build):              PASS
+Test 2 (Container Start):    PASS
+Test 3 (supervisorctl):      PASS
+Test 4 (IPMI process):       PASS
+Test 5 (UDP 623):            PASS
+Test 6 (mc info IPMI 1.5):   PASS
+Test 7 (mc info IPMI 2.0):   PASS
+Test 8 (Wrong password):     PASS
+Test 9 (Wrong username):     PASS
+========================================
+Log saved to: /home/ubuntu/project/qemu-with-bmc/tests/evidence/phase3_test_20260127_070338.log
+Test completed: Tue Jan 27 07:03:46 UTC 2026

@@ -1,0 +1,19 @@
+# ipmi_sim EMU Configuration
+# Defines BMC device characteristics
+
+# The BMC is the MC at address 0x20
+mc_setbmc 0x20
+
+# Add the BMC
+# mc_add <ipmb-addr> <dev-id> <has-device-SDRs> <device-revision> <major-fw-rev>
+#        <minor-fw-rev> <device-support> <mfg-id> <product-id> [persist_sdr]
+mc_add 0x20 0 no-device-sdrs 0x00 0x01 0x00 0x9f 0x000000 0x0000
+
+# Enable the system event log
+sel_enable 0x20 1000 0x0a
+
+# Watchdog sensor (must be sensor zero)
+sensor_add 0x20 0 0 35 0x6f event-only
+
+# Enable the MC
+mc_enable 0x20
