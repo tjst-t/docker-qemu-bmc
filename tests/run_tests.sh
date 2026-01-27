@@ -26,7 +26,7 @@ source "$TESTS_DIR/helpers/test_helper.sh"
 
 # Test configuration
 export CONTAINER_NAME="${CONTAINER_NAME:-qemu-bmc-test}"
-export CONTAINER_IMAGE="${CONTAINER_IMAGE:-qemu-bmc:phase4}"
+export CONTAINER_IMAGE="${CONTAINER_IMAGE:-qemu-bmc:latest}"
 export VNC_PORT="${VNC_PORT:-5910}"
 export IPMI_PORT="${IPMI_PORT:-6240}"
 
@@ -58,7 +58,7 @@ build_image() {
     log_section "Building Docker Image"
     cd "$PROJECT_DIR"
 
-    if docker build -f Dockerfile.phase4 -t "$CONTAINER_IMAGE" . 2>&1 | tee -a "$LOG_FILE" | tail -5; then
+    if docker build -t "$CONTAINER_IMAGE" . 2>&1 | tee -a "$LOG_FILE" | tail -5; then
         log_pass "Docker image built successfully"
         return 0
     else
@@ -265,14 +265,12 @@ main() {
             run_phase4
             ;;
         phase5)
-            CONTAINER_IMAGE="qemu-bmc:phase5"
-            docker build -f Dockerfile.phase5 -t "$CONTAINER_IMAGE" . 2>&1 | tail -5
+            build_image || exit 1
             start_test_container || exit 1
             run_phase5
             ;;
         phase6)
-            CONTAINER_IMAGE="qemu-bmc:phase6"
-            docker build -f Dockerfile.phase6 -t "$CONTAINER_IMAGE" . 2>&1 | tail -5
+            build_image || exit 1
             start_test_container || exit 1
             run_phase6
             ;;

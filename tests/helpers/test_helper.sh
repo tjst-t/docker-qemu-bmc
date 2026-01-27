@@ -20,7 +20,7 @@ TEST_OUTPUT=""
 
 # Container settings
 CONTAINER_NAME="${CONTAINER_NAME:-qemu-bmc-test}"
-CONTAINER_IMAGE="${CONTAINER_IMAGE:-qemu-bmc:phase4}"
+CONTAINER_IMAGE="${CONTAINER_IMAGE:-qemu-bmc:latest}"
 VNC_PORT="${VNC_PORT:-5910}"
 IPMI_PORT="${IPMI_PORT:-6240}"
 

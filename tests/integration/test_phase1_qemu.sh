@@ -13,7 +13,7 @@ source "$SCRIPT_DIR/../helpers/test_helper.sh"
 # Test: Docker image builds
 test_docker_build() {
     local output
-    output=$(docker build -f Dockerfile.phase4 -t qemu-bmc:phase4 . 2>&1)
+    output=$(docker build -t qemu-bmc:latest . 2>&1)
     local exit_code=$?
 
     assert_success $exit_code "Docker build should succeed" || return 1
