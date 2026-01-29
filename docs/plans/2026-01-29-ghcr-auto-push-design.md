@@ -6,16 +6,17 @@ Push 時に自動でコンテナをビルドし、GitHub Container Registry (ghc
 
 ## 要件
 
-- **トリガー:** main ブランチへの push + タグ作成時
-- **タグ形式:** シンプル（タグそのまま）
+- **トリガー:** タグ作成時のみ（`v*` パターン）
+- **タグ形式:** シンプル（タグそのまま）+ `latest`
 - **プラットフォーム:** amd64 のみ
 
 ## イメージタグ
 
 | トリガー | 生成されるタグ |
 |----------|----------------|
-| main への push | `ghcr.io/tjst-t/docker-qemu-bmc:latest` |
-| `v1.0.0` タグ | `ghcr.io/tjst-t/docker-qemu-bmc:v1.0.0` |
+| `v1.0.0` タグ | `ghcr.io/tjst-t/docker-qemu-bmc:v1.0.0` + `:latest` |
+
+**方針:** main への push ではビルドしない。タグ = リリースとし、`latest` は最新リリースを指す。
 
 ## ワークフロー
 
