@@ -12,15 +12,16 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../helpers/test_helper.sh"
 
-# Test: Serial console socket exists
+# Test: Serial console TCP port exists
 test_serial_socket_exists() {
+    local sol_port="${SOL_PORT:-9002}"
     local result
-    result=$(container_exec ls -la /var/run/qemu/console.sock 2>&1)
+    result=$(container_exec ss -tln 2>&1)
 
-    if echo "$result" | grep -q "console.sock"; then
+    if echo "$result" | grep -q ":${sol_port} "; then
         return 0
     else
-        TEST_OUTPUT="Serial console socket not found: $result"
+        TEST_OUTPUT="Serial console TCP port ${sol_port} not found"
         return 1
     fi
 }
@@ -105,17 +106,15 @@ test_sol_activate_attempt() {
     fi
 }
 
-# Test: Console socket is accessible
+# Test: Console socket is accessible (TCP port 9002)
 test_console_socket_accessible() {
-    # Try to connect to the console socket
-    local result
-    result=$(container_exec timeout 2 socat - UNIX-CONNECT:/var/run/qemu/console.sock 2>&1 </dev/null || true)
+    # Check if QEMU's serial TCP port is listening
+    local sol_port="${SOL_PORT:-9002}"
 
-    # Socket should exist and be connectable (even if no output)
-    if container_exec test -S /var/run/qemu/console.sock 2>/dev/null; then
+    if container_exec ss -tln 2>/dev/null | grep -q ":${sol_port} "; then
         return 0
     else
-        TEST_OUTPUT="Console socket not accessible"
+        TEST_OUTPUT="Console TCP port ${sol_port} not accessible"
         return 1
     fi
 }

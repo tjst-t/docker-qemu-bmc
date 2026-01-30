@@ -104,22 +104,22 @@ ipmitool -I lanplus -H $NODE1_IP -U admin -P password power status
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │ supervisord (PID 1)                                 │   │
 │  │                                                     │   │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐  │   │
-│  │  │  ipmi_sim    │  │    QEMU      │  │ sol-     │  │   │
-│  │  │  (priority   │  │  (priority   │  │ bridge   │  │   │
-│  │  │   10)        │  │   20)        │  │ (25)     │  │   │
-│  │  └──────┬───────┘  └──────┬───────┘  └────┬─────┘  │   │
-│  │         │                 │               │        │   │
-│  └─────────┼─────────────────┼───────────────┼────────┘   │
-│            │                 │               │            │
-│            │ QMP Socket      │ Serial Socket │            │
-│            │ (power ctrl)    │ (SOL)         │            │
-│            └────────────────►├◄──────────────┘            │
-│                              │                            │
-│  Network Interfaces:         │                            │
-│  ├─ eth0: Management         │                            │
-│  ├─ eth1: IPMI (UDP 623)     │                            │
-│  └─ eth2+: VM passthrough ───┘                            │
+│  │  ┌──────────────┐       ┌──────────────┐           │   │
+│  │  │  ipmi_sim    │       │    QEMU      │           │   │
+│  │  │  (priority   │       │  (priority   │           │   │
+│  │  │   10)        │       │   20)        │           │   │
+│  │  └──────┬───────┘       └──────┬───────┘           │   │
+│  │         │                      │                   │   │
+│  └─────────┼──────────────────────┼───────────────────┘   │
+│            │                      │                       │
+│            │ QMP Socket           │ Serial TCP:9002       │
+│            │ (power ctrl)         │ (SOL)                 │
+│            └─────────────────────►├◄──────────────────────┤
+│                                   │                       │
+│  Network Interfaces:              │                       │
+│  ├─ eth0: Management              │                       │
+│  ├─ eth1: IPMI (UDP 623)          │                       │
+│  └─ eth2+: VM passthrough ────────┘                       │
 │                                                           │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -127,7 +127,7 @@ ipmitool -I lanplus -H $NODE1_IP -U admin -P password power status
 ### Key Integration Points
 
 - **QMP Socket** (`/var/run/qemu/qmp.sock`) - IPMI power commands control QEMU
-- **Serial Socket** (`/var/run/qemu/console.sock`) - SOL connects to VM console
+- **Serial TCP** (`localhost:9002`) - SOL connects to VM serial console
 - **Power State** (`/var/run/qemu/power.state`) - Tracks VM power status
 
 ### IPMI to QMP Command Mapping
@@ -214,6 +214,24 @@ cap_add:
   - SYS_ADMIN
 ```
 
+## Known Limitations
+
+### SOL Connection After Power Cycle
+
+When using `power cycle`, the QEMU process restarts, which causes the TCP port for Serial Over LAN (SOL) to temporarily close. This disconnects any active SOL session.
+
+**Workaround:**
+- Use `power reset` instead of `power cycle` when possible (maintains SOL connection)
+- After `power cycle`, reconnect SOL:
+  ```bash
+  ipmitool -I lanplus -H <host> -U admin -P password sol activate
+  ```
+
+| Command | QEMU Process | SOL Connection |
+|---------|--------------|----------------|
+| `power reset` | Kept running | Maintained |
+| `power cycle` | Restarted | Requires reconnect |
+
 ## Troubleshooting
 
 ### KVM not available
@@ -243,11 +261,19 @@ docker exec qemu-bmc cat /var/run/qemu/power.state
 ### SOL not connecting
 
 ```bash
-# Check serial socket
-docker exec qemu-bmc test -S /var/run/qemu/console.sock && echo "OK"
+# Check serial TCP port is listening
+docker exec qemu-bmc ss -tln | grep 9002
 
-# Check sol-bridge service
-docker exec qemu-bmc supervisorctl status sol-bridge
+# Check ipmi_sim is connected to serial
+docker exec qemu-bmc ss -tn | grep 9002
+
+# Check IPMI log for SOL errors
+docker exec qemu-bmc cat /var/log/ipmi/ipmi.log
+```
+
+If SOL disconnects after `power cycle`, reconnect with:
+```bash
+ipmitool -I lanplus -H <host> -U admin -P password sol activate
 ```
 
 ## License

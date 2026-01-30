@@ -136,12 +136,20 @@ build_qemu_cmd() {
         echo "INFO: Network setup not available, using no network" >&2
     fi
 
-    # Serial console socket for SOL (Phase 6)
-    cmd="$cmd -chardev socket,id=serial0,path=${SERIAL_SOCK},server=on,wait=off"
+    # Serial console for SOL (Phase 6)
+    # Use TCP socket directly so ipmi_sim can connect
+    SOL_PORT="${SOL_PORT:-9002}"
+    cmd="$cmd -chardev socket,id=serial0,host=localhost,port=${SOL_PORT},server=on,wait=off,telnet=off"
     cmd="$cmd -serial chardev:serial0"
 
-    # Run in foreground (no daemonize for container)
-    cmd="$cmd -nographic -monitor stdio"
+    # Enable SeaBIOS serial console output
+    # -device sga: Serial Graphics Adapter (mirrors text mode to serial)
+    # -fw_cfg: Tell SeaBIOS to use COM1 (0x3f8) for serial console
+    cmd="$cmd -device sga"
+    cmd="$cmd -fw_cfg name=etc/sercon-port,string=0x3f8"
+
+    # Display configuration: VGA for VNC, monitor on stdio
+    cmd="$cmd -display none -vga std -monitor stdio"
 
     echo "$cmd"
 }

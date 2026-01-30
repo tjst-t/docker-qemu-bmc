@@ -131,8 +131,7 @@ VOLUME ["/iso"]
 # Check that all critical services are running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD supervisorctl status qemu | grep -q RUNNING && \
-        supervisorctl status ipmi | grep -q RUNNING && \
-        supervisorctl status sol-bridge | grep -q RUNNING || exit 1
+        supervisorctl status ipmi | grep -q RUNNING || exit 1
 
 # ============================================
 # Entrypoint

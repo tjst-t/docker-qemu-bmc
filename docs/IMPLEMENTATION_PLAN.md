@@ -291,3 +291,39 @@ containerlab deploy -t containerlab/example.yml
 | ipmi_simの設定複雑 | Phase3-4で遅延 | 最小構成から段階的に |
 | macvtapの権限問題 | Phase5でブロック | bridge方式も検討 |
 | SOLの互換性問題 | Phase6で遅延 | socat経由の代替案 |
+
+---
+
+## 今後のタスク
+
+### SOL接続維持の改善
+
+**課題**: `power cycle`コマンドでQEMUプロセスが再起動すると、TCPポート9002が一時的に閉じるため、SOL接続が切断される。現状はユーザーがSOLを再度activateする必要がある。
+
+**考えられる解決策**:
+
+1. **socatの再接続オプションを活用** (推奨)
+   ```
+   ipmi_sim → TCP:9002 → socat(retry/forever) → QEMU TCP:9003(内部)
+   ```
+   - QEMUは内部用TCPポート9003で公開
+   - sol-bridgeがsocatの`retry`/`forever`オプションで自動再接続
+   - 外部向けにTCP:9002を維持
+   - ipmi_simの接続は切れない
+
+2. **sol-bridgeを復活させてTCPポートを維持**
+   ```
+   ipmi_sim → TCP:9002 → sol-bridge → UNIX socket → QEMU
+   ```
+   - sol-bridgeがTCPポートを常に維持
+   - QEMUが再起動してもsol-bridgeが再接続
+   - 接続タイミングの問題に注意が必要
+
+3. **シリアルプロキシ（screen/tmux）**
+   ```
+   ipmi_sim → TCP:9002 → screen/tmux → PTY → QEMU serial
+   ```
+   - screen/tmuxがシリアルセッションを維持
+   - やや複雑な構成
+
+**優先度**: 低〜中（現状のワークアラウンドで運用可能）

@@ -83,18 +83,17 @@ test_container_starts() {
     return 1
 }
 
-# Test: All three services running (qemu, ipmi, sol-bridge)
+# Test: All services running (qemu, ipmi)
 test_all_services_running() {
     local status
     status=$(docker exec qemu-bmc-final-test supervisorctl status 2>/dev/null)
 
     assert_contains "$status" "qemu" "QEMU service should exist" || return 1
     assert_contains "$status" "ipmi" "IPMI service should exist" || return 1
-    assert_contains "$status" "sol-bridge" "SOL bridge service should exist" || return 1
 
     # All should be RUNNING
     local running_count=$(echo "$status" | grep -c "RUNNING")
-    if [ "$running_count" -ge 3 ]; then
+    if [ "$running_count" -ge 2 ]; then
         return 0
     else
         TEST_OUTPUT="Not all services are running: $status"
@@ -135,9 +134,9 @@ test_power_control_works() {
     assert_contains "$result" "on" "Power should be on" || return 1
 }
 
-# Test: Serial console socket exists
+# Test: Serial console TCP port exists
 test_serial_console_exists() {
-    docker exec qemu-bmc-final-test test -S /var/run/qemu/console.sock
+    docker exec qemu-bmc-final-test ss -tln | grep -q ":9002 "
 }
 
 # Test: QMP socket exists
