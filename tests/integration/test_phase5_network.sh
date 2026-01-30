@@ -197,6 +197,156 @@ test_network_setup_with_config() {
     assert_success $exit_code "setup-network.sh should handle empty VM_NETWORKS" || return 1
 }
 
+# Test: Bridge exists when VM_NETWORKS is configured
+test_bridge_exists_for_vm_network() {
+    local vm_networks
+    vm_networks=$(container_exec printenv VM_NETWORKS 2>/dev/null || echo "")
+
+    if [ -z "$vm_networks" ]; then
+        log_info "No VM_NETWORKS configured, skipping bridge test"
+        return 0
+    fi
+
+    # For each configured network, there should be a bridge connecting it to tap
+    for iface in $(echo "$vm_networks" | tr ',' ' '); do
+        # Check if interface has a master (is part of a bridge)
+        local master
+        master=$(container_exec cat /sys/class/net/$iface/master/uevent 2>/dev/null | grep INTERFACE | cut -d= -f2 || echo "")
+
+        if [ -z "$master" ]; then
+            # Alternative: check brif directories
+            local bridge_found=false
+            for br_brif in $(container_exec ls -d /sys/class/net/*/brif 2>/dev/null); do
+                local br=$(container_exec dirname "$br_brif" | xargs basename 2>/dev/null)
+                if container_exec ls "$br_brif" 2>/dev/null | grep -q "^${iface}$"; then
+                    bridge_found=true
+                    break
+                fi
+            done
+
+            if [ "$bridge_found" = "false" ]; then
+                TEST_OUTPUT="No bridge found containing interface $iface"
+                return 1
+            fi
+        fi
+    done
+
+    return 0
+}
+
+# Test: TAP device is connected to bridge when VM_NETWORKS is configured
+test_tap_connected_to_bridge() {
+    local vm_networks
+    vm_networks=$(container_exec printenv VM_NETWORKS 2>/dev/null || echo "")
+
+    if [ -z "$vm_networks" ]; then
+        log_info "No VM_NETWORKS configured, skipping tap-bridge test"
+        return 0
+    fi
+
+    # Check that tap0 is connected to a bridge
+    local tap_master
+    tap_master=$(container_exec cat /sys/class/net/tap0/master/uevent 2>/dev/null | grep INTERFACE | cut -d= -f2 || echo "")
+
+    if [ -z "$tap_master" ]; then
+        # Alternative check: look for bridge membership
+        local bridge_for_tap
+        bridge_for_tap=$(container_exec bash -c 'for br in /sys/class/net/br*/brif/tap0; do [ -e "$br" ] && basename $(dirname $(dirname $br)); done' 2>/dev/null || echo "")
+
+        if [ -z "$bridge_for_tap" ]; then
+            TEST_OUTPUT="tap0 is not connected to any bridge"
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+# Test: Host interface is connected to same bridge as TAP
+test_host_iface_and_tap_same_bridge() {
+    local vm_networks
+    vm_networks=$(container_exec printenv VM_NETWORKS 2>/dev/null || echo "")
+
+    if [ -z "$vm_networks" ]; then
+        log_info "No VM_NETWORKS configured, skipping same-bridge test"
+        return 0
+    fi
+
+    local first_iface
+    first_iface=$(echo "$vm_networks" | tr ',' ' ' | awk '{print $1}')
+
+    # Get bridge for tap0
+    local tap_bridge
+    tap_bridge=$(container_exec bash -c 'for br in /sys/class/net/br*/brif/tap0; do [ -e "$br" ] && basename $(dirname $(dirname $br)); done' 2>/dev/null || echo "")
+
+    # Get bridge for host interface
+    local iface_bridge
+    iface_bridge=$(container_exec bash -c "for br in /sys/class/net/br*/brif/$first_iface; do [ -e \"\$br\" ] && basename \$(dirname \$(dirname \$br)); done" 2>/dev/null || echo "")
+
+    if [ -z "$tap_bridge" ] || [ -z "$iface_bridge" ]; then
+        TEST_OUTPUT="tap0 or $first_iface not connected to any bridge (tap_bridge='$tap_bridge', iface_bridge='$iface_bridge')"
+        return 1
+    fi
+
+    if [ "$tap_bridge" != "$iface_bridge" ]; then
+        TEST_OUTPUT="tap0 ($tap_bridge) and $first_iface ($iface_bridge) are on different bridges"
+        return 1
+    fi
+
+    return 0
+}
+
+# Test: Bridge has no IP address (L2 only)
+test_bridge_no_ip_address() {
+    local vm_networks
+    vm_networks=$(container_exec printenv VM_NETWORKS 2>/dev/null || echo "")
+
+    if [ -z "$vm_networks" ]; then
+        log_info "No VM_NETWORKS configured, skipping bridge IP test"
+        return 0
+    fi
+
+    local first_iface
+    first_iface=$(echo "$vm_networks" | tr ',' ' ' | awk '{print $1}')
+    local bridge_name="br_${first_iface}"
+
+    # Bridge should have no IPv4 address
+    local bridge_ip
+    bridge_ip=$(container_exec ip -4 addr show "$bridge_name" 2>/dev/null | grep -oP 'inet \K[\d.]+' || echo "")
+
+    if [ -n "$bridge_ip" ]; then
+        TEST_OUTPUT="Bridge $bridge_name should not have IP address, but has: $bridge_ip"
+        return 1
+    fi
+
+    return 0
+}
+
+# Test: Host interface has no IP address when bridged
+test_host_iface_no_ip_when_bridged() {
+    local vm_networks
+    vm_networks=$(container_exec printenv VM_NETWORKS 2>/dev/null || echo "")
+
+    if [ -z "$vm_networks" ]; then
+        log_info "No VM_NETWORKS configured, skipping host iface IP test"
+        return 0
+    fi
+
+    local first_iface
+    first_iface=$(echo "$vm_networks" | tr ',' ' ' | awk '{print $1}')
+
+    # Host interface should have no IPv4 address when part of bridge
+    local iface_ip
+    iface_ip=$(container_exec ip -4 addr show "$first_iface" 2>/dev/null | grep -oP 'inet \K[\d.]+' || echo "")
+
+    if [ -n "$iface_ip" ]; then
+        TEST_OUTPUT="Host interface $first_iface should not have IP address when bridged, but has: $iface_ip"
+        return 1
+    fi
+
+    return 0
+}
+
 # Main test runner
 main() {
     log_section "Phase 5 Tests: Network Setup"
@@ -230,6 +380,11 @@ main() {
     run_test "Network info file" test_network_info_file
     run_test "Container interfaces" test_container_interfaces
     run_test "Network setup with config" test_network_setup_with_config
+    run_test "Bridge exists for VM network" test_bridge_exists_for_vm_network
+    run_test "TAP connected to bridge" test_tap_connected_to_bridge
+    run_test "Host iface and TAP same bridge" test_host_iface_and_tap_same_bridge
+    run_test "Bridge has no IP (L2 only)" test_bridge_no_ip_address
+    run_test "Host iface no IP when bridged" test_host_iface_no_ip_when_bridged
 }
 
 # Run if executed directly

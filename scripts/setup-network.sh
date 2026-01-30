@@ -85,6 +85,7 @@ generate_mac_address() {
 create_tap_device() {
     local host_iface="$1"
     local tap_name="$2"
+    local bridge_name="br_${host_iface}"
 
     # Check if tap device already exists
     if ip link show "$tap_name" &>/dev/null; then
@@ -99,17 +100,24 @@ create_tap_device() {
     # Bring up the tap device
     ip link set "$tap_name" up
 
-    # If host interface exists, bridge them
+    # If host interface exists, create bridge and connect both
     if ip link show "$host_iface" &>/dev/null; then
-        # Get the MAC address of the host interface
-        local host_mac=$(cat /sys/class/net/$host_iface/address 2>/dev/null || echo "")
+        log_info "Creating bridge $bridge_name for $host_iface and $tap_name"
 
-        if [ -n "$host_mac" ]; then
-            # Set tap device to same MAC for bridging
-            ip link set "$tap_name" address "$host_mac" 2>/dev/null || true
-        fi
+        # Remove IP from host interface (L2 bridge only, VM will have IP)
+        ip addr flush dev "$host_iface" 2>/dev/null || true
 
-        log_info "TAP device $tap_name created and linked to $host_iface"
+        # Create bridge (L2 only, no IP address)
+        ip link add "$bridge_name" type bridge 2>/dev/null || true
+        ip link set "$bridge_name" up
+
+        # Add host interface to bridge
+        ip link set "$host_iface" master "$bridge_name" 2>/dev/null || true
+
+        # Add tap device to bridge
+        ip link set "$tap_name" master "$bridge_name" 2>/dev/null || true
+
+        log_info "Bridge $bridge_name created with $host_iface and $tap_name (L2 only, no IP)"
     fi
 
     return 0
@@ -228,6 +236,15 @@ cleanup_network() {
     for macvtap in /sys/class/net/macvtap_*; do
         if [ -d "$macvtap" ]; then
             local name=$(basename "$macvtap")
+            ip link delete "$name" 2>/dev/null || true
+            log_info "Removed $name"
+        fi
+    done
+
+    # Remove bridge devices created by this script
+    for bridge in /sys/class/net/br_*; do
+        if [ -d "$bridge" ]; then
+            local name=$(basename "$bridge")
             ip link delete "$name" 2>/dev/null || true
             log_info "Removed $name"
         fi

@@ -36,6 +36,30 @@ docker run -d --name qemu-bmc --privileged \
   qemu-bmc:latest
 ```
 
+### Run with Network Passthrough
+
+To pass network interfaces to the VM for connectivity testing:
+
+```bash
+# Create Docker networks
+docker network create mgmt-net
+docker network create vm-net
+
+# Run with VM_NETWORKS (eth1 will be passed to VM)
+docker run --rm --name qemu-bmc --privileged --device /dev/kvm:/dev/kvm --device /dev/net/tun:/dev/net/tun -p 5900:5900 -p 623:623/udp -v $(pwd)/vm:/vm:rw --network mgmt-net --network vm-net -e VM_NETWORKS=eth1 qemu-bmc:latest
+```
+
+Network interface assignment:
+- `eth0` (mgmt-net) - Container management, keeps IP for VNC/IPMI access
+- `eth1` (vm-net) - Bridged to VM via TAP device, no IP (L2 only)
+
+To test VM connectivity, run another container on the same network:
+
+```bash
+docker run --rm -it --network vm-net alpine sh
+# Inside: ifconfig to get IP, then ping from VM
+```
+
 ### Access
 
 ```bash
