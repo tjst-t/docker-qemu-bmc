@@ -26,6 +26,7 @@ VM_BOOT="${VM_BOOT:-c}"
 ENABLE_KVM="${ENABLE_KVM:-true}"
 VNC_PORT="${VNC_PORT:-5900}"
 DEBUG="${DEBUG:-false}"
+VM_BOOT_MODE="${VM_BOOT_MODE:-bios}"
 
 # QMP socket for power control (Phase 4)
 QMP_SOCK="${QMP_SOCK:-/var/run/qemu/qmp.sock}"
@@ -36,6 +37,11 @@ SERIAL_SOCK="${SERIAL_SOCK:-/var/run/qemu/console.sock}"
 
 # Boot device file (set by IPMI chassis bootdev)
 BOOT_DEVICE_FILE="${BOOT_DEVICE_FILE:-/var/run/qemu/boot.device}"
+
+# UEFI firmware paths (OVMF)
+OVMF_CODE="/usr/share/OVMF/OVMF_CODE_4M.fd"
+OVMF_VARS_TEMPLATE="/usr/share/OVMF/OVMF_VARS_4M.fd"
+OVMF_VARS="/var/run/qemu/OVMF_VARS.fd"
 
 # Get boot device from IPMI setting and convert to QEMU parameter
 get_boot_param() {
@@ -69,6 +75,7 @@ if [ "$DEBUG" = "true" ]; then
     echo "VM_DISK: ${VM_DISK}"
     echo "VM_CDROM: ${VM_CDROM}"
     echo "VM_BOOT: ${VM_BOOT}"
+    echo "VM_BOOT_MODE: ${VM_BOOT_MODE}"
     echo "ENABLE_KVM: ${ENABLE_KVM}"
     echo "VNC_PORT: ${VNC_PORT} (display :${VNC_DISPLAY})"
     echo "=========================="
@@ -93,6 +100,24 @@ build_qemu_cmd() {
     else
         cmd="$cmd -machine q35,accel=tcg -cpu qemu64"
         echo "WARN: KVM not available, using TCG (slower)" >&2
+    fi
+
+    # Boot mode configuration (BIOS or UEFI)
+    if [ "$VM_BOOT_MODE" = "uefi" ]; then
+        # UEFI mode using OVMF
+        if [ ! -f "$OVMF_CODE" ]; then
+            echo "ERROR: OVMF firmware not found at $OVMF_CODE" >&2
+            exit 1
+        fi
+        # Copy OVMF_VARS template for this VM instance
+        if [ ! -f "$OVMF_VARS" ]; then
+            cp "$OVMF_VARS_TEMPLATE" "$OVMF_VARS"
+        fi
+        cmd="$cmd -drive if=pflash,format=raw,readonly=on,file=$OVMF_CODE"
+        cmd="$cmd -drive if=pflash,format=raw,file=$OVMF_VARS"
+        echo "INFO: UEFI boot mode enabled (OVMF)" >&2
+    else
+        echo "INFO: Legacy BIOS boot mode (SeaBIOS)" >&2
     fi
 
     # Memory and CPUs
@@ -142,11 +167,18 @@ build_qemu_cmd() {
     cmd="$cmd -chardev socket,id=serial0,host=localhost,port=${SOL_PORT},server=on,wait=off,telnet=off"
     cmd="$cmd -serial chardev:serial0"
 
-    # Enable SeaBIOS serial console output
-    # -device sga: Serial Graphics Adapter (mirrors text mode to serial)
-    # -fw_cfg: Tell SeaBIOS to use COM1 (0x3f8) for serial console
-    cmd="$cmd -device sga"
-    cmd="$cmd -fw_cfg name=etc/sercon-port,string=0x3f8"
+    # Serial console configuration
+    if [ "$VM_BOOT_MODE" = "uefi" ]; then
+        # UEFI/OVMF: Serial console works without special configuration
+        # OVMF automatically outputs to first serial port
+        :
+    else
+        # Legacy BIOS: Enable SeaBIOS serial console output
+        # -device sga: Serial Graphics Adapter (mirrors text mode to serial)
+        # -fw_cfg: Tell SeaBIOS to use COM1 (0x3f8) for serial console
+        cmd="$cmd -device sga"
+        cmd="$cmd -fw_cfg name=etc/sercon-port,string=0x3f8"
+    fi
 
     # Display configuration: VGA for VNC, monitor on stdio
     cmd="$cmd -display none -vga std -monitor stdio"
