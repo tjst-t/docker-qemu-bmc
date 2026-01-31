@@ -139,6 +139,7 @@ qemu-with-bmc/
 | `VM_DISK` | /vm/disk.qcow2 | Main disk path |
 | `VM_CDROM` | (empty) | ISO path for CD-ROM |
 | `VM_BOOT` | c | Boot device (c=disk, d=cdrom) |
+| `VM_BOOT_MODE` | bios | Boot mode: bios (Legacy) or uefi (OVMF) |
 | `IPMI_USER` | admin | IPMI username |
 | `IPMI_PASS` | password | IPMI password |
 | `VM_NETWORKS` | (empty) | NICs to pass to VM (comma-separated, e.g., eth2,eth3) |
