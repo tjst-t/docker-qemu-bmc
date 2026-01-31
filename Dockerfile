@@ -40,6 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     socat \
     iproute2 \
     ca-certificates \
+    ovmf \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
