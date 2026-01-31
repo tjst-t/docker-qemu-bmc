@@ -218,6 +218,17 @@ qemu-system-x86_64 \
   -daemonize
 ```
 
+#### 4.5.3 ブートモード
+
+`VM_BOOT_MODE` 環境変数でブートモードを切り替えられます：
+
+| 値 | 説明 |
+|---|---|
+| `bios` | Legacy BIOS (SeaBIOS) - デフォルト |
+| `uefi` | UEFI (OVMF) |
+
+UEFIモードでは、OVMFファームウェアが使用されます。NVRAM変数は `/var/run/qemu/OVMF_VARS.fd` に保存されます。
+
 ### 4.6 ipmi_sim設定仕様
 
 #### 4.6.1 電源制御コマンドマッピング
