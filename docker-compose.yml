@@ -43,6 +43,8 @@ services:
       - DEBUG=false
       - IPMI_USER=admin
       - IPMI_PASS=password
+      # Boot mode: bios (Legacy/SeaBIOS) or uefi (OVMF)
+      - VM_BOOT_MODE=bios
       # Uncomment to pass network interfaces to VM
       # - VM_NETWORKS=eth2,eth3
 

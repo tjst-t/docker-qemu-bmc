@@ -9,6 +9,7 @@ Containerized QEMU/KVM virtual machine with integrated IPMI BMC (Baseboard Manag
 - **Power Control** - On/Off/Cycle/Reset via IPMI chassis commands
 - **Serial Over LAN (SOL)** - Remote serial console access via IPMI
 - **Network Passthrough** - Container interfaces (eth2+) passed through to VM
+- **Boot Mode Selection** - Legacy BIOS (SeaBIOS) or UEFI (OVMF) boot
 - **Process Management** - supervisord manages all services
 - **Containerlab Ready** - Works as a node in containerlab topologies
 
@@ -80,6 +81,40 @@ ipmitool -I lanplus -H 127.0.0.1 -U admin -P password sol activate
 # Press ~. to disconnect
 ```
 
+## UEFI Boot Mode
+
+By default, the VM boots in Legacy BIOS mode (SeaBIOS). To use UEFI boot mode with OVMF firmware:
+
+### Run with UEFI
+
+```bash
+# Run with UEFI boot mode
+docker run -d --name qemu-bmc --privileged \
+  --device /dev/kvm:/dev/kvm \
+  -p 5900:5900 \
+  -p 623:623/udp \
+  -v $(pwd)/vm:/vm:rw \
+  -e VM_BOOT_MODE=uefi \
+  qemu-bmc:latest
+```
+
+### Using docker-compose
+
+```bash
+# Edit docker-compose.yml and set VM_BOOT_MODE=uefi
+# Or use environment override:
+VM_BOOT_MODE=uefi docker-compose up -d
+```
+
+### Boot Mode Comparison
+
+| Mode | Firmware | Use Case |
+|------|----------|----------|
+| `bios` (default) | SeaBIOS | Legacy OS, quick testing |
+| `uefi` | OVMF | Modern OS, Secure Boot compatible images |
+
+**Note:** UEFI mode stores NVRAM variables in `/var/run/qemu/OVMF_VARS.fd` within the container. These are reset when the container is recreated.
+
 ## Docker Compose
 
 ```bash
@@ -112,6 +147,7 @@ ipmitool -I lanplus -H $NODE1_IP -U admin -P password power status
 | `VM_DISK` | /vm/disk.qcow2 | Path to VM disk image |
 | `VM_CDROM` | (empty) | Path to ISO for CD-ROM |
 | `VM_BOOT` | c | Boot device (c=disk, d=cdrom) |
+| `VM_BOOT_MODE` | bios | Boot mode: `bios` (Legacy/SeaBIOS) or `uefi` (OVMF) |
 | `ENABLE_KVM` | true | Enable KVM acceleration |
 | `VNC_PORT` | 5900 | VNC display port |
 | `IPMI_USER` | admin | IPMI username |
@@ -201,7 +237,7 @@ qemu-with-bmc/
 ## Testing
 
 ```bash
-# Run all tests (builds image and runs 76 tests)
+# Run all tests (builds image and runs 91 tests)
 ./tests/run_tests.sh all
 
 # Run specific phase tests
@@ -212,6 +248,7 @@ qemu-with-bmc/
 ./tests/run_tests.sh phase5    # Network
 ./tests/run_tests.sh phase6    # SOL
 ./tests/run_tests.sh phase7    # Integration
+./tests/run_tests.sh bootmode  # Boot mode (BIOS/UEFI)
 
 # Quick smoke test
 ./tests/run_tests.sh quick

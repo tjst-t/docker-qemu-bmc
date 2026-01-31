@@ -10,7 +10,7 @@ Docker QEMU BMC is a containerized QEMU/KVM virtual machine with integrated IPMI
 
 ## Project Status
 
-**All 7 phases are complete.** The project is production-ready with 76 passing tests.
+**All 7 phases are complete.** The project is production-ready with 91 passing tests.
 
 | Phase | Description | Status |
 |-------|-------------|--------|
@@ -46,7 +46,7 @@ docker-compose up -d
 ## Test Commands
 
 ```bash
-# Run all tests (76 tests)
+# Run all tests (91 tests)
 ./tests/run_tests.sh all
 
 # Run specific phase tests
@@ -57,6 +57,7 @@ docker-compose up -d
 ./tests/run_tests.sh phase5    # Network (15 tests)
 ./tests/run_tests.sh phase6    # SOL (12 tests)
 ./tests/run_tests.sh phase7    # Integration (13 tests)
+./tests/run_tests.sh bootmode  # Boot mode (4 tests)
 
 # Quick smoke test
 ./tests/run_tests.sh quick
