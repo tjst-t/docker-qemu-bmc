@@ -24,6 +24,11 @@ CONTAINER_IMAGE="${CONTAINER_IMAGE:-qemu-bmc:latest}"
 VNC_PORT="${VNC_PORT:-5910}"
 IPMI_PORT="${IPMI_PORT:-6240}"
 
+# vncprobe settings
+VNCPROBE_VERSION="${VNCPROBE_VERSION:-v1.0.1}"
+VNCPROBE_DIR="${VNCPROBE_DIR:-${TESTS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/bin}"
+VNCPROBE_BIN="${VNCPROBE_DIR}/vncprobe"
+
 # Logging
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $*"
@@ -217,6 +222,40 @@ stop_test_container() {
 
 container_exec() {
     docker exec "$CONTAINER_NAME" "$@"
+}
+
+# vncprobe helper functions
+setup_vncprobe() {
+    if [ -x "$VNCPROBE_BIN" ]; then
+        return 0
+    fi
+
+    local arch
+    arch=$(uname -m)
+    case "$arch" in
+        x86_64)  arch="amd64" ;;
+        aarch64) arch="arm64" ;;
+        *)
+            log_info "Unsupported architecture for vncprobe: $arch"
+            return 1
+            ;;
+    esac
+
+    local os
+    os=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+    local url="https://github.com/tjst-t/vncprobe/releases/download/${VNCPROBE_VERSION}/vncprobe-${VNCPROBE_VERSION}-${os}-${arch}"
+
+    log_info "Downloading vncprobe ${VNCPROBE_VERSION} (${os}-${arch})..."
+    mkdir -p "$VNCPROBE_DIR"
+    if curl -fsSL -o "$VNCPROBE_BIN" "$url"; then
+        chmod +x "$VNCPROBE_BIN"
+        log_info "vncprobe installed to $VNCPROBE_BIN"
+        return 0
+    else
+        log_info "Failed to download vncprobe"
+        return 1
+    fi
 }
 
 # IPMI helper functions

@@ -44,6 +44,9 @@ htmlcov/
 .tox/
 .hypothesis/
 
+# Test tool binaries (downloaded at test time)
+tests/bin/
+
 # Docker
 .dockerignore
 docker-compose.override.yml

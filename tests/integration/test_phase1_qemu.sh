@@ -71,21 +71,32 @@ test_vnc_port_listening() {
     assert_contains "$qemu_cmd" "-vnc" "QEMU should have VNC configured" || return 1
 }
 
-# Test: VNC connection (if vncviewer available on host)
+# Test: VNC connection via vncprobe capture
 test_vnc_connection() {
-    # Check if we can connect to VNC port from host
-    if command -v nc &>/dev/null; then
-        local result
-        result=$(echo "" | nc -w 2 127.0.0.1 "$VNC_PORT" 2>&1 | head -c 3)
-        if [ "$result" = "RFB" ]; then
-            return 0
-        fi
+    if ! setup_vncprobe; then
+        skip_test "VNC connection" "vncprobe not available"
+        return 0
     fi
 
-    # If nc not available or connection failed, check port is exposed
-    local ports
-    ports=$(docker port "$CONTAINER_NAME" 5900 2>/dev/null)
-    assert_contains "$ports" "$VNC_PORT" "VNC port should be exposed" || return 1
+    local capture_dir
+    capture_dir=$(mktemp -d)
+    local capture_file="${capture_dir}/vnc_test.png"
+
+    local output
+    output=$("$VNCPROBE_BIN" capture -s "127.0.0.1:${VNC_PORT}" -o "$capture_file" --timeout 10 2>&1)
+    local exit_code=$?
+
+    if [ $exit_code -eq 0 ] && [ -f "$capture_file" ]; then
+        local file_size
+        file_size=$(stat -c%s "$capture_file" 2>/dev/null || stat -f%z "$capture_file" 2>/dev/null)
+        log_info "VNC capture successful (${file_size} bytes): $capture_file"
+        rm -rf "$capture_dir"
+        return 0
+    else
+        TEST_OUTPUT="vncprobe capture failed (exit code: $exit_code)\n  Output: $output"
+        rm -rf "$capture_dir"
+        return 1
+    fi
 }
 
 # Main test runner
