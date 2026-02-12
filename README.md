@@ -115,6 +115,77 @@ VM_BOOT_MODE=uefi docker-compose up -d
 
 **Note:** UEFI mode stores NVRAM variables in `/var/run/qemu/OVMF_VARS.fd` within the container. These are reset when the container is recreated.
 
+## Boot Menu Timeout
+
+`VM_BOOT_MENU_TIMEOUT` を設定すると、BIOS/UEFIのブートメニューを指定時間（ミリ秒）表示して待機します。デフォルト（0）ではブートメニューは表示されず、即座にブートが開始されます。
+
+```bash
+# ブートメニューを30秒間表示
+docker run -d --name qemu-bmc --privileged \
+  --device /dev/kvm:/dev/kvm \
+  -p 5900:5900 \
+  -p 623:623/udp \
+  -v $(pwd)/vm:/vm:rw \
+  -e VM_BOOT_MENU_TIMEOUT=30000 \
+  qemu-bmc:latest
+```
+
+### ユースケース
+
+**OSインストール時のブートデバイス選択**
+
+CD-ROMからOSをインストールする際に、ブートメニューからインストールメディアを選択できます。
+
+```bash
+docker run -d --name qemu-bmc --privileged \
+  --device /dev/kvm:/dev/kvm \
+  -p 5900:5900 -p 623:623/udp \
+  -v $(pwd)/vm:/vm:rw \
+  -v $(pwd)/iso:/iso:ro \
+  -e VM_CDROM=/iso/installer.iso \
+  -e VM_BOOT_MENU_TIMEOUT=30000 \
+  qemu-bmc:latest
+# VNCで接続 → ブートメニューからCD-ROMを選択してインストール
+```
+
+**VNCツールによる自動BIOS操作**
+
+[vncprobe](https://github.com/tjst-t/vncprobe) 等のVNC自動化ツールと組み合わせることで、ブートメニューの操作を自動化できます。
+
+```bash
+# コンテナ起動（ブートメニュー30秒待機）
+docker run -d --name qemu-bmc --privileged \
+  --device /dev/kvm:/dev/kvm \
+  -p 5900:5900 -p 623:623/udp \
+  -v $(pwd)/vm:/vm:rw \
+  -e VM_BOOT_MENU_TIMEOUT=30000 \
+  qemu-bmc:latest
+
+# ブートメニュー画面をスクリーンショット
+vncprobe capture -s "127.0.0.1:5900" -o screenshot.png
+
+# Escキーでブートデバイス選択メニューを開く（SeaBIOS）
+vncprobe key -s "127.0.0.1:5900" Escape
+
+# デバイスを番号で選択
+vncprobe key -s "127.0.0.1:5900" 1
+```
+
+**デバッグ・トラブルシューティング**
+
+VMが正常にブートしない場合に、ブートメニューで停止させて状態を確認できます。
+
+```bash
+docker run -d --name qemu-bmc --privileged \
+  --device /dev/kvm:/dev/kvm \
+  -p 5900:5900 -p 623:623/udp \
+  -v $(pwd)/vm:/vm:rw \
+  -e VM_BOOT_MENU_TIMEOUT=60000 \
+  -e VM_BOOT_MODE=uefi \
+  qemu-bmc:latest
+# VNCで接続 → UEFIメニューからDevice ManagerやBoot Managerで設定確認
+```
+
 ## Docker Compose
 
 ```bash
@@ -148,6 +219,7 @@ ipmitool -I lanplus -H $NODE1_IP -U admin -P password power status
 | `VM_CDROM` | (empty) | Path to ISO for CD-ROM |
 | `VM_BOOT` | c | Boot device (c=disk, d=cdrom) |
 | `VM_BOOT_MODE` | bios | Boot mode: `bios` (Legacy/SeaBIOS) or `uefi` (OVMF) |
+| `VM_BOOT_MENU_TIMEOUT` | 0 | Boot menu display time in ms (0=disabled) |
 | `ENABLE_KVM` | true | Enable KVM acceleration |
 | `VNC_PORT` | 5900 | VNC display port |
 | `IPMI_USER` | admin | IPMI username |

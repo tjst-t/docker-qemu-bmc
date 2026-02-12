@@ -27,6 +27,7 @@ ENABLE_KVM="${ENABLE_KVM:-true}"
 VNC_PORT="${VNC_PORT:-5900}"
 DEBUG="${DEBUG:-false}"
 VM_BOOT_MODE="${VM_BOOT_MODE:-bios}"
+VM_BOOT_MENU_TIMEOUT="${VM_BOOT_MENU_TIMEOUT:-0}"
 
 # QMP socket for power control (Phase 4)
 QMP_SOCK="${QMP_SOCK:-/var/run/qemu/qmp.sock}"
@@ -137,6 +138,11 @@ build_qemu_cmd() {
 
     # Boot device - check IPMI setting first, then env var fallback
     local boot_param=$(get_boot_param)
+    # Append boot menu with splash-time if timeout is set
+    if [ "$VM_BOOT_MENU_TIMEOUT" -gt 0 ] 2>/dev/null; then
+        boot_param="${boot_param},menu=on,splash-time=${VM_BOOT_MENU_TIMEOUT}"
+        echo "INFO: Boot menu enabled with timeout: ${VM_BOOT_MENU_TIMEOUT}ms" >&2
+    fi
     cmd="$cmd -boot ${boot_param}"
     echo "INFO: Boot device: ${boot_param}" >&2
 

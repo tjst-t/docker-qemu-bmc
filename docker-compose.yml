@@ -45,6 +45,8 @@ services:
       - IPMI_PASS=password
       # Boot mode: bios (Legacy/SeaBIOS) or uefi (OVMF)
       - VM_BOOT_MODE=bios
+      # Boot menu splash time in ms (0=disabled, e.g. 30000=30sec)
+      # - VM_BOOT_MENU_TIMEOUT=30000
       # Uncomment to pass network interfaces to VM
       # - VM_NETWORKS=eth2,eth3
 
